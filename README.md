@@ -1,1 +1,1 @@
-# automatas-project
+# lexical analizer project
