@@ -1,0 +1,25 @@
+digraph "DFA by direct method" {
+	rankdir=LR size=10
+	node [fillcolor="#26C485" shape=circle style=filled]
+	s4
+	s5
+	s6
+	s7
+	node [fillcolor="#f64747" shape=circle style=filled]
+	s0 -> s1 [label=0]
+	s0 -> s0 [label=1]
+	s1 -> s2 [label=0]
+	s1 -> s3 [label=1]
+	s2 -> s4 [label=0]
+	s2 -> s5 [label=1]
+	s3 -> s6 [label=0]
+	s3 -> s7 [label=1]
+	s4 -> s4 [label=0]
+	s4 -> s5 [label=1]
+	s5 -> s6 [label=0]
+	s5 -> s7 [label=1]
+	s6 -> s2 [label=0]
+	s6 -> s3 [label=1]
+	s7 -> s1 [label=0]
+	s7 -> s0 [label=1]
+}

@@ -1,0 +1,12 @@
+digraph "DFA by Thompson's method" {
+	rankdir=LR size=10
+	node [fillcolor="#26C485" shape=circle style=filled]
+	C
+	D
+	node [fillcolor="#f64747" shape=circle style=filled]
+	A -> B [label=b]
+	A -> C [label=a]
+	B -> B [label=b]
+	B -> C [label=a]
+	C -> D [label=b]
+}

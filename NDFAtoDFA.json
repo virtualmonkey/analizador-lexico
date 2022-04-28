@@ -1,0 +1,1 @@
+{"automata":[{"initialState":"A","symbol":"b","finalState":"B"},{"initialState":"A","symbol":"a","finalState":"C"},{"initialState":"B","symbol":"b","finalState":"B"},{"initialState":"B","symbol":"a","finalState":"C"},{"initialState":"C","symbol":"b","finalState":"D"}],"acceptanceStates":["C","D"]}

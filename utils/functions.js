@@ -1,3 +1,5 @@
+import uniq from 'lodash/uniq.js';
+
 function simplifyArray (expression, array){
   const simplifiedArray = [];
 
@@ -18,6 +20,24 @@ function simplifyArray (expression, array){
   return simplifiedArray;
 }
 
+function prepareAutomatForGraphic(transitions, startEndNodes){
+  const automata = transitions.map((transition) => {
+    return {
+      initialState: transition[0],
+      symbol: transition[1],
+      finalState: transition[2]
+    }
+  });
+
+  const acceptanceStates = uniq(startEndNodes.map(startEndNode => startEndNode[1]));
+
+  return {
+    automata,
+    acceptanceStates
+  }
+}
+
 export const functions = {
   simplifyArray,
+  prepareAutomatForGraphic
 }
