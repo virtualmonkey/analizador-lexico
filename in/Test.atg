@@ -1,0 +1,19 @@
+COMPILER Test
+
+CHARACTERS
+
+letter = "ab". 
+digit = "01".
+tab = CHR(9).
+eol = CHR(10).
+
+KEYWORDS
+
+if = "if".
+
+TOKENS
+
+ident = letter{letter|digit} EXCEPT KEYWORDS.
+number = digit{digit}.
+
+END Test

@@ -1,110 +1,80 @@
 import promptSync from 'prompt-sync';
-import NDFA from './NDFA/NDFA.js';
-import NDFAToDFA from './NDFAToDFA/NDFAToDFA.js';
-import DFA from './DFA/DFA.js';
-import { functions }  from './utils/functions.js';
 import * as fs from 'fs';
-
+import trim from 'lodash/trim.js'
 
 const prompt = promptSync();
 
-while (true){
-  console.log("\n-------------------------------------------");
-  console.log("+++ Analizador de expresiones regulares +++");
-  console.log("-------------------------------------------");
-  console.log("\nIngrese una opción del menú: \n");
-  console.log("1. Construir un AFD a partir de un AFN construido a través de una expresión regular \n2. Construir un AFD con el método directo \n3. Salir\n");
-  const menuSelection = prompt(">> ");
+console.log("\n-------------------------------------------");
+console.log("        +++ Analizador Léxico +++          ");
+console.log("-------------------------------------------");
+console.log("\nEste analizador funciona de la siguiente forma \n");
+console.log("\n1. Se le solicitará el path(relativo) de el archivo extensión .ATG que desea analizar (los archivos de prueba se encuentran en la carpeta /in)");
+console.log("\n2. Se generará un archivo compilable con el mismo nombre pero con extensión .js en la carpeta /out");
+console.log("\n3. Usted deberá correr el archivo que se generó ingresando en la terminal -> node ./out/[nombre-archivo].js");
+console.log("\n4. Las instrucciones para ejecutar dicho archivo serán provistas una vez que lo ejecute");
+console.log("");
 
-  if(menuSelection === "1"){
-    const r = prompt("Ingrese la expresión regular r >> ");
+const header = [];
+const characters = [];
+const keywords = [];
+const tokens = [];
+const end = [];
 
-    const rClean = r.replace(/\s+/g, '')
-    
-    const ndfaInstance = new NDFA();
-    const ndfa = ndfaInstance.getNDFA(rClean);
+const fileRelativePath = prompt("Ingrese el path relativo del archivo >> ");
 
-    const dfaInstance = new NDFAToDFA();
+const inputFileLines = []
 
-    const dfa = dfaInstance.getDFA(ndfa.automata, ndfa.startEndNodes)
+const readFile = fs.readFileSync(fileRelativePath, "utf-8");
 
-    console.log("dfaFinalAutomata ", dfa.dfaFinalAutomata);
-    console.log("dfaStartEndNodes ", dfa.dfaStartEndNodes);
 
-    const jsonAutomata = JSON.stringify(functions.prepareAutomatForGraphic(dfa.dfaFinalAutomata, dfa.dfaStartEndNodes));
+readFile.split(/\r?\n/).forEach(line =>  {
+  if (trim(line).length !== 0){
+    inputFileLines.push(trim(line));
+  }
+});
 
-    fs.writeFileSync('NDFAtoDFA.json', jsonAutomata, 'utf8');
+for (let lineIndex = 0; lineIndex < inputFileLines.length; lineIndex++){
+  if (inputFileLines[lineIndex].includes("COMPILER")){
+    header.push(inputFileLines[lineIndex].split(" ")[1])
+  }
 
-    console.log("El automata ha sido guardado! Ahora puede correr 'python3 graphicUtils/graphicNDFAToDFA.py' en otra terminal para visualizarlo");
-
-    let validateString = true;
-
-    while (validateString){
-      const w = prompt("\n Ingrese la cadena a validar >> ");
-
-      const result = dfaInstance.validateString(w);
-  
-      if (!!result){
-        console.log("\nLa cadena w si pertenece al lenguaje generado por el AF(L(r))!")
+  else if (inputFileLines[lineIndex].includes("CHARACTERS")){
+    for (let currIndex = lineIndex + 1; currIndex < inputFileLines.length; currIndex++){
+      if (inputFileLines[currIndex].includes("KEYWORDS")){
+        break
       } else {
-        console.log("\nLa cadena w no pertenece al lenguaje generado por el AF(L(r))!")
+        characters.push(inputFileLines[currIndex])
       }
-
-      let keepGoing = prompt("Desea validar otra cadena? y/n >> ");
-      switch(keepGoing){
-        case "n":
-          validateString = false;
-          break;
+    }
+  }
+  
+  else if (inputFileLines[lineIndex].includes("TOKENS")){
+    for (let currIndex = lineIndex + 1; currIndex < inputFileLines.length; currIndex++){
+      if (inputFileLines[currIndex].includes("END")){
+        break
+      } else {
+        tokens.push(inputFileLines[currIndex])
       }
     }
   }
 
-  else if (menuSelection == "2"){
-    
-    const r = prompt("\n Ingrese la expresión regular r >> ");
-
-    const rClean = r.replace(/\s+/g, '');
-
-    const dfaInstance = new DFA();
-
-    const dfa = dfaInstance.getDirectDFA(rClean);
-
-    console.log("directDFA -> ", dfa.directDFA);
-    console.log("directDFAStartEndNodes -> ", dfa.directDFAStartEndNodes);
-
-    const jsonAutomata = JSON.stringify(functions.prepareAutomatForGraphic(dfa.directDFA, dfa.directDFAStartEndNodes));
-
-    fs.writeFileSync('directDFA.json', jsonAutomata, 'utf8');
-
-    console.log("El automata ha sido guardado! Ahora puede correr 'python3 graphicUtils/graphicDirectDFA.py' en otra terminal para visualizarlo");
-
-    let validateString = true;
-
-    while (validateString){
-      const w = prompt("Ingrese la cadena a validar >> ");
-
-      const result = dfaInstance.validateString(w);
-  
-      if (!!result){
-        console.log("\nLa cadena w si pertenece al lenguaje generado por el AF(L(r))!")
+  else if (inputFileLines[lineIndex].includes("KEYWORDS") && !inputFileLines[lineIndex].includes("EXCEPT")){
+    for (let currIndex = lineIndex + 1; currIndex < inputFileLines.length; currIndex++){
+      if (inputFileLines[currIndex].includes("TOKENS")){
+        break;
       } else {
-        console.log("\nLa cadena w no pertenece al lenguaje generado por el AF(L(r))!")
-      }
-
-      let keepGoing = prompt("Desea validar otra cadena? y/n >> ");
-      switch(keepGoing){
-        case "n":
-          validateString = false;
-          break;
+        keywords.push(inputFileLines[currIndex])
       }
     }
   }
 
-  else if (menuSelection == "3"){
-    console.log("Hasta luego!");
-    break;
-  }
-  else {
-    console.log("Porfavor ingrese un número del menú");
+  else if (inputFileLines[lineIndex].includes("END")){
+    end.push(inputFileLines[lineIndex].split(" ")[1])
   }
 }
+
+console.log("header -> ", header);
+console.log("characters -> ", characters);
+console.log("keywords -> ", keywords);
+console.log("tokens -> ", tokens);
+console.log("end -> ", end);
