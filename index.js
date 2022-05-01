@@ -1,4 +1,5 @@
 import promptSync from 'prompt-sync';
+import getCompilableFile from './LexicalAnalizer/LexicalAnalizer.js';
 import * as fs from 'fs';
 import trim from 'lodash/trim.js'
 
@@ -8,7 +9,7 @@ console.log("\n-------------------------------------------");
 console.log("        +++ Analizador Léxico +++          ");
 console.log("-------------------------------------------");
 console.log("\nEste analizador funciona de la siguiente forma \n");
-console.log("\n1. Se le solicitará el path(relativo) de el archivo extensión .ATG que desea analizar (los archivos de prueba se encuentran en la carpeta /in)");
+console.log("\n1. Se le solicitará el path(relativo) de el archivo con extensión .ATG que desea analizar (los archivos de prueba se encuentran en la carpeta /in)");
 console.log("\n2. Se generará un archivo compilable con el mismo nombre pero con extensión .js en la carpeta /out");
 console.log("\n3. Usted deberá correr el archivo que se generó ingresando en la terminal -> node ./out/[nombre-archivo].js");
 console.log("\n4. Las instrucciones para ejecutar dicho archivo serán provistas una vez que lo ejecute");
@@ -21,6 +22,7 @@ const tokens = [];
 const end = [];
 
 const fileRelativePath = prompt("Ingrese el path relativo del archivo >> ");
+// const fileRelativePath = "in/ArchivoPrueba3.atg"
 
 const inputFileLines = []
 
@@ -73,8 +75,10 @@ for (let lineIndex = 0; lineIndex < inputFileLines.length; lineIndex++){
   }
 }
 
-console.log("header -> ", header);
-console.log("characters -> ", characters);
-console.log("keywords -> ", keywords);
-console.log("tokens -> ", tokens);
-console.log("end -> ", end);
+const outputFileLines = getCompilableFile(header, characters, keywords, tokens);
+
+const writeStream = fs.createWriteStream(`./out/${header[0]}.js`);
+
+outputFileLines.forEach((line) => writeStream.write(line))
+
+console.log(`Clickee acá para ver el archivo generado -----> ./out/${header[0]}.js`)
