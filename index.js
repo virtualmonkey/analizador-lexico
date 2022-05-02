@@ -22,12 +22,11 @@ const tokens = [];
 const end = [];
 
 const fileRelativePath = prompt("Ingrese el path relativo del archivo >> ");
-// const fileRelativePath = "in/ArchivoPrueba3.atg"
+//const fileRelativePath = "in/ArchivoPrueba1.atg"
 
 const inputFileLines = []
 
 const readFile = fs.readFileSync(fileRelativePath, "utf-8");
-
 
 readFile.split(/\r?\n/).forEach(line =>  {
   if (trim(line).length !== 0){

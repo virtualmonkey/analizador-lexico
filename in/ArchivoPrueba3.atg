@@ -25,6 +25,6 @@ numero = digito{digito}.
 numeroDecimal = digito{digito}"."digito{digito}.
 numeroHex = digitoHex{digitoHex}"H".
 espacioEnBlanco = enBlanco{enBlanco}.
-cadena = comillas cualquiera comillas.
+cadena = comillas {cualquiera} comillas.
 
 END ArchivoPrueba3

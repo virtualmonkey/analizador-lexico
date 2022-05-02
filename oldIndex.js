@@ -18,11 +18,9 @@ while (true){
 
   if(menuSelection === "1"){
     const r = prompt("Ingrese la expresión regular r >> ");
-
-    const rClean = r.replace(/\s+/g, '')
     
     const ndfaInstance = new NDFA();
-    const ndfa = ndfaInstance.getNDFA(rClean);
+    const ndfa = ndfaInstance.getNDFA(r);
 
     const dfaInstance = new NDFAToDFA();
 
@@ -61,13 +59,11 @@ while (true){
 
   else if (menuSelection == "2"){
     
-    const r = prompt("\n Ingrese la expresión regular r >> ");
-
-    const rClean = r.replace(/\s+/g, '');
+    const rr = prompt("\n Ingrese la expresión regular r >> ");
 
     const dfaInstance = new DFA();
 
-    const dfa = dfaInstance.getDirectDFA(rClean);
+    const dfa = dfaInstance.getDirectDFA(rr);
 
     console.log("directDFA -> ", dfa.directDFA);
     console.log("directDFAStartEndNodes -> ", dfa.directDFAStartEndNodes);
@@ -85,7 +81,7 @@ while (true){
 
       const result = dfaInstance.validateString(w);
   
-      if (!!result){
+      if (result === true){
         console.log("\nLa cadena w si pertenece al lenguaje generado por el AF(L(r))!")
       } else {
         console.log("\nLa cadena w no pertenece al lenguaje generado por el AF(L(r))!")

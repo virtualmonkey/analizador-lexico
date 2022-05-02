@@ -23,13 +23,13 @@ function simplifyArray (expression, array){
 function prepareAutomatForGraphic(transitions, startEndNodes){
   const automata = transitions.map((transition) => {
     return {
-      initialState: transition[0],
+      initialState: "s"+transition[0],
       symbol: transition[1],
-      finalState: transition[2]
+      finalState: "s"+transition[2]
     }
   });
 
-  const acceptanceStates = uniq(startEndNodes.map(startEndNode => startEndNode[1]));
+  const acceptanceStates = uniq(startEndNodes.map(startEndNode => "s"+startEndNode[1]));
 
   return {
     automata,

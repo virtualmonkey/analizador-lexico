@@ -305,8 +305,19 @@ export default class DFA {
     const symbols = [];
 
     for (let symbol of expression) {
-      if (symbol.match(/^\w+$/) && !symbols.includes(symbol)) {
+      if (
+        symbols !== constants.OR &&
+        symbols !== constants.KLEEN_CLOSURE &&
+        symbols !== constants.POSITIVE_CLOSURE &&
+        symbols !== constants.ZERO_OR_ONE &&
+        symbols !== constants.CONCAT &&
+        symbols !== constants.OPEN_PARENTHESIS &&
+        symbols !== constants.CLOSING_PARENTHESIS && 
+        symbols !== constants.EPSILON &&
+        !symbols.includes(symbol)
+        ) {
         symbols.push(symbol);
+        
       }
     }
 
@@ -391,11 +402,11 @@ export default class DFA {
 
     for (let state of rawAutomata) {
       for (let transition of state.transitions) {
-        automata.push(["s"+state.id.toString(), transition.symbol, "s"+transition.id.toString()])
+        automata.push([state.id.toString(), transition.symbol, transition.id.toString()])
       }
 
       if (state.isAcceptanceState) {
-        startEndNodes.push(["s0", "s"+state.id.toString()])
+        startEndNodes.push(["0", state.id.toString()])
       }
     }
 
