@@ -67,6 +67,6 @@ digraph "DFA by direct method" {
 	s1 -> s1 [label=7]
 	s1 -> s1 [label=8]
 	s1 -> s1 [label=9]
-	s1 -> s1 [label="→"]
-	s1 -> s1 [label=" "]
+	s1 -> s1 [label="%"]
+	s1 -> s1 [label="$"]
 }

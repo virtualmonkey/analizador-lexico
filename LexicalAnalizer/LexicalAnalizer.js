@@ -73,7 +73,9 @@ function getKeywordStatements(keywordsArray){
     const keywordLine = currentKeyword.replace(".","").split("=");
 
     const keywordName = trim(keywordLine[0]);
-    const keywordValue = trim(keywordLine[1].replaceAll(CHR(34), ""));
+    let keywordValue = trim(keywordLine[1]);
+
+    keywordValue = keywordValue.replaceAll(CHR(34), "")
 
     const keywordStatement = {
       keywordName: keywordName,
@@ -125,8 +127,15 @@ function tokenStringToAutomataString(tokenAsString){
   // substitute ] por / + ")*) "+/
   currentTokenValue = currentTokenValue.replaceAll(CHR(93), `&+&")*)&"+`);
 
-  // substitute "+H" por /+ "H"/
-  currentTokenValue = currentTokenValue.replaceAll(CHR(43)+CHR(72), `+&"H"`);
+  const addedSubstrings = currentTokenValue.match(/(?![".&"])(?<=\+\+).*?(?=\+)/gs);
+
+  // substitute "+substring" por /+ "substring"/
+  if (addedSubstrings && addedSubstrings.length > 0){
+    for (let addedSubstring of addedSubstrings){
+      const addedSubstringJoined = join(addedSubstring.split(""),"&");
+      currentTokenValue = currentTokenValue.replaceAll(`+${addedSubstring}`, `+&'${addedSubstringJoined}'`);
+    }
+  }
 
   const currentTokenAutomataString = `${currentTokenName} = ${currentTokenValue}`
 
@@ -134,7 +143,10 @@ function tokenStringToAutomataString(tokenAsString){
 }
 
 function tokenHasExceptions(tokenAsArray){
-  if (tokenAsArray.at(-2) === "EXCEPT" && tokenAsArray.at(-1) === "KEYWORDS"){
+  if (
+    tokenAsArray.at(-2) === "EXCEPT" &&
+    tokenAsArray.at(-1) === "KEYWORDS"
+    ){
     return true;
   }
 
@@ -142,22 +154,22 @@ function tokenHasExceptions(tokenAsArray){
 }
 
 function getTokenStatements(tokensArray){
-  const tokenValuesWithoutKeywords = [];
-  const tokenValuesWithKeywords = [];
+  const tokenNames = [];
+  const tokenValues = [];
+
+  if (tokensArray.at(-1).includes("END")) tokensArray.pop();
 
   const tokenStatements = [];
-
   for (let currentToken of tokensArray){
     const currentAutomataString = tokenStringToAutomataString(currentToken);
     
     let currentTokenArray = currentAutomataString.split(" ");
 
-    
     if (tokenHasExceptions(currentTokenArray)){
       currentTokenArray.pop();
       currentTokenArray.pop();
-      tokenValuesWithKeywords.push(first(currentTokenArray));
-    } else tokenValuesWithoutKeywords.push(first(currentTokenArray));
+      tokenValues.push(first(currentTokenArray));
+    } else tokenValues.push(first(currentTokenArray));
 
     // This means we have spaces on the value of the current token
     if (currentTokenArray.length > 3){
@@ -179,6 +191,8 @@ function getTokenStatements(tokensArray){
 
     let clutteredTokenName = clutteredCurrentTokenArray[0];
     let clutteredTokenValue = clutteredCurrentTokenArray[1];
+
+    tokenNames.push(clutteredTokenName);
 
     // start cleaning the clutteredTokenValue
     clutteredTokenValue = clutteredTokenValue.replaceAll(CHR(41)+CHR(42)+CHR(41), ")*)&");
@@ -205,7 +219,6 @@ function getTokenStatements(tokensArray){
     clutteredTokenValue = newTokenValueArray.join("");
 
     clutteredTokenValue = clutteredTokenValue.replaceAll(`"+/`, `"+`);
-    
     clutteredTokenValue = clutteredTokenValue.replaceAll(CHR(43)+CHR(43)+CHR(43), `&+`);
     clutteredTokenValue = clutteredTokenValue.replaceAll(CHR(43)+CHR(43), `&+`);
     clutteredTokenValue = clutteredTokenValue.replaceAll(CHR(40)+CHR(40), `&((`)
@@ -213,6 +226,19 @@ function getTokenStatements(tokensArray){
     clutteredTokenValue = clutteredTokenValue.replaceAll(CHR(38)+CHR(43), `+`)
     clutteredTokenValue = clutteredTokenValue.replaceAll("/", `+"&"+`);
     clutteredTokenValue = clutteredTokenValue.replaceAll(`"&"++`, ``);
+    clutteredTokenValue = clutteredTokenValue.replaceAll(`+`, ` + `);
+
+    const addedSubstrings = clutteredTokenValue.match(/(?<=').*?(?=')/gs);
+
+    // substitute ' +substring' por /+ "s&u&b&s&t&r&i&n&g"/
+    if (addedSubstrings && addedSubstrings.length > 0){
+      for (let addedSubstring of addedSubstrings){
+        const addedSubstringJoined = join(addedSubstring.split(""),"&");
+        clutteredTokenValue = clutteredTokenValue.replaceAll(`+ '${addedSubstring}'`, `+ "${addedSubstringJoined}"`);
+      }
+    }
+
+    clutteredTokenValue = clutteredTokenValue.replaceAll(`(+)`, ` + `);
 
     const tokenStatement = {
       tokenName: clutteredTokenName,
@@ -224,8 +250,8 @@ function getTokenStatements(tokensArray){
 
   return {
     tokenStatements: tokenStatements,
-    tokenValuesWithKeywords: tokenValuesWithKeywords,
-    tokenValuesWithoutKeywords: tokenValuesWithoutKeywords
+    tokenValues: tokenValues,
+    tokenNames: tokenNames,
   }
 }
 
@@ -233,12 +259,23 @@ export default function getCompilableFile(headerArray, charactersArray, keywords
   const outputFileLines = [];
 
   // TODO change this imports
+  outputFileLines.push(`import promptSync from "prompt-sync";`);
+  outputFileLines.push("\n");
   outputFileLines.push(`import { getAutomataString } from "../LexicalAnalizer/LexicalAnalizer.js";`);
   outputFileLines.push("\n");
   outputFileLines.push(`import { CHR } from "../LexicalAnalizer/LexicalAnalizer.js";`)
   outputFileLines.push("\n");
+  outputFileLines.push(`import { generateScannerOutput } from "../scanner.js";`)
   outputFileLines.push("\n");
-  outputFileLines.push("// COMPILABLE FILE "+ headerArray[0]+ ".js");
+  outputFileLines.push(`import { readTestFile } from "../scanner.js";`);
+  outputFileLines.push("\n");
+  outputFileLines.push("\n");
+  outputFileLines.push(`const prompt = promptSync();`);
+  outputFileLines.push("\n");
+  outputFileLines.push("\n");
+  outputFileLines.push("// FILENAME");
+  outputFileLines.push("\n");
+  outputFileLines.push(`let fileName = "${headerArray[0]}";`);
   outputFileLines.push("\n")
   outputFileLines.push("\n");
   outputFileLines.push("// CHARACTERS");
@@ -247,26 +284,49 @@ export default function getCompilableFile(headerArray, charactersArray, keywords
   // CHARACTERS
   const characterStatements = getCharacterStatements(charactersArray);
 
+  let specialCharacters = [];
+
+  outputFileLines.push(`console.log("Los characters disponibles son los siguientes: ")`);
+  outputFileLines.push("\n");
+  outputFileLines.push(`console.log("");`);
+  outputFileLines.push("\n");
+  outputFileLines.push("\n");
+
   for (let characterStatement of characterStatements){
     const { characterName, characterValue } = characterStatement;
+
+    if(characterValue.includes("CHR(")){
+      let separatedCharacters = characterValue.split("+");
+      if (separatedCharacters.length > 1){
+        for (let separatedCharacter of separatedCharacters){
+          if (separatedCharacter.includes("CHR(")){
+            specialCharacters.push(trim(separatedCharacter));
+          }
+        }
+      } else {
+        specialCharacters.push(trim(separatedCharacters));
+      }
+    }
 
     outputFileLines.push(`let ${characterName} = ${characterValue};`);
-    outputFileLines.push("\n")
-  }
-
-  outputFileLines.push("\n")
-
-  for (let characterStatement of characterStatements){
-    const { characterName, characterValue } = characterStatement;
-
-    outputFileLines.push(`${characterName} = getAutomataString(${characterValue});`);
     outputFileLines.push("\n")
     outputFileLines.push(`console.log("${characterName} -> ", ${characterName});`);
     outputFileLines.push("\n")
     outputFileLines.push("\n")
   }
 
-  outputFileLines.push(`console.log("");`);
+  outputFileLines.push(`// AUTOMATA CHARACTERS`);
+  outputFileLines.push("\n")
+  for (let characterStatement of characterStatements){
+    const { characterName, characterValue } = characterStatement;
+
+    outputFileLines.push(`${characterName} = getAutomataString(${characterValue});`);
+    outputFileLines.push("\n")
+  }
+
+  outputFileLines.push("\n")
+  outputFileLines.push(`const specialCharacters = [${specialCharacters}]`);
+  outputFileLines.push("\n");
   outputFileLines.push("\n");
   outputFileLines.push(`console.log("");`);
   outputFileLines.push("\n");
@@ -284,8 +344,13 @@ export default function getCompilableFile(headerArray, charactersArray, keywords
   // TOKENS
   outputFileLines.push("\n");
   outputFileLines.push("// TOKENS");
+  outputFileLines.push("\n");
+  outputFileLines.push(`console.log("Los tokens permitidos están representados por los siguientes autómatas: ")`);
+  outputFileLines.push("\n");
+  outputFileLines.push(`console.log("");`);
+  outputFileLines.push("\n");
 
-  const { tokenStatements, tokenValuesWithKeywords, tokenValuesWithoutKeywords} = getTokenStatements(tokensArray)
+  const { tokenStatements, tokenValues, tokenNames } = getTokenStatements(tokensArray);
 
   for (let tokenStatement of tokenStatements){
     const {tokenName, tokenValue} =  tokenStatement;
@@ -300,11 +365,24 @@ export default function getCompilableFile(headerArray, charactersArray, keywords
   outputFileLines.push("\n")
   outputFileLines.push("// TOKENS ARRAYS")
   outputFileLines.push("\n")
-  outputFileLines.push(`const tokenValuesWithKeywords = ${JSON.stringify(tokenValuesWithKeywords).replaceAll(CHR(34), "")};`)
-  outputFileLines.push("\n")
-  outputFileLines.push("\n")
-  outputFileLines.push(`const tokenValuesWithoutKeywords = ${JSON.stringify(tokenValuesWithoutKeywords).replaceAll(CHR(34), "")};`)
-  outputFileLines.push("\n")
+  outputFileLines.push(`const tokenValues = ${JSON.stringify(tokenValues).replaceAll(CHR(34), "")};`)
+  outputFileLines.push("\n");
+  outputFileLines.push(`const tokenNames = ${JSON.stringify(tokenNames)};`)
+  outputFileLines.push("\n");
+  outputFileLines.push("\n");
+  outputFileLines.push(`console.log("");`);
+  outputFileLines.push("\n");
+  outputFileLines.push(`console.log("");`);
+  outputFileLines.push("\n");
+  outputFileLines.push(`const testFileRelativePath = prompt("Ingrese el path relativo del archivo .txt que desea evaluar (revise la carpeta llamada txts) >> ");`);
+  outputFileLines.push("\n");
+  outputFileLines.push("\const testFileLines = readTestFile(testFileRelativePath)");
+  outputFileLines.push("\n");
+  outputFileLines.push("\n");
+  outputFileLines.push("const scannerOutput = generateScannerOutput(fileName, specialCharacters, keywords, tokenNames, tokenValues, testFileLines);")
+  outputFileLines.push("\n");
+  outputFileLines.push("\n");
+  outputFileLines.push(`console.log("El output es -> ", scannerOutput);`)
 
   return outputFileLines;
 }

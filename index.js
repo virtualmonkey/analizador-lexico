@@ -19,10 +19,11 @@ const header = [];
 const characters = [];
 const keywords = [];
 const tokens = [];
+const productions = [];
 const end = [];
 
 const fileRelativePath = prompt("Ingrese el path relativo del archivo >> ");
-//const fileRelativePath = "in/ArchivoPrueba1.atg"
+//const fileRelativePath = "in/ArchivoPrueba5.atg"
 
 const inputFileLines = []
 
@@ -48,16 +49,6 @@ for (let lineIndex = 0; lineIndex < inputFileLines.length; lineIndex++){
       }
     }
   }
-  
-  else if (inputFileLines[lineIndex].includes("TOKENS")){
-    for (let currIndex = lineIndex + 1; currIndex < inputFileLines.length; currIndex++){
-      if (inputFileLines[currIndex].includes("END")){
-        break
-      } else {
-        tokens.push(inputFileLines[currIndex])
-      }
-    }
-  }
 
   else if (inputFileLines[lineIndex].includes("KEYWORDS") && !inputFileLines[lineIndex].includes("EXCEPT")){
     for (let currIndex = lineIndex + 1; currIndex < inputFileLines.length; currIndex++){
@@ -65,6 +56,26 @@ for (let lineIndex = 0; lineIndex < inputFileLines.length; lineIndex++){
         break;
       } else {
         keywords.push(inputFileLines[currIndex])
+      }
+    }
+  }
+
+  else if (inputFileLines[lineIndex].includes("TOKENS")){
+    for (let currIndex = lineIndex + 1; currIndex < inputFileLines.length; currIndex++){
+      if (inputFileLines[currIndex].includes("PRODUCTIONS")){
+        break
+      } else {
+        tokens.push(inputFileLines[currIndex])
+      }
+    }
+  }
+
+  else if (inputFileLines[lineIndex].includes("PRODUCTIONS")){
+    for (let currIndex = lineIndex + 1; currIndex < inputFileLines.length; currIndex++){
+      if (inputFileLines[currIndex].includes("END")){
+        break
+      } else {
+        productions.push(inputFileLines[currIndex])
       }
     }
   }

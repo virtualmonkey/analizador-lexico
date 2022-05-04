@@ -26,7 +26,7 @@ export default class DFA {
         expression[currentCharacter] !== constants.KLEEN_CLOSURE &&
         expression[currentCharacter] !== constants.POSITIVE_CLOSURE &&
         expression[currentCharacter] !== constants.ZERO_OR_ONE &&
-        expression[currentCharacter] !== constants.CONCAT &&
+        expression[currentCharacter] !== constants.NEW_CONCAT &&
         expression[currentCharacter] !== constants.OPEN_PARENTHESIS &&
         expression[currentCharacter] !== constants.CLOSING_PARENTHESIS
       ) {
@@ -36,7 +36,7 @@ export default class DFA {
           expression[currentCharacter] !== constants.KLEEN_CLOSURE &&
           expression[currentCharacter] !== constants.POSITIVE_CLOSURE &&
           expression[currentCharacter] !== constants.ZERO_OR_ONE &&
-          expression[currentCharacter] !== constants.CONCAT &&
+          expression[currentCharacter] !== constants.NEW_CONCAT &&
           expression[currentCharacter] !== constants.OPEN_PARENTHESIS &&
           expression[currentCharacter] !== constants.CLOSING_PARENTHESIS
         ) {
@@ -100,7 +100,7 @@ export default class DFA {
 
     const extra = new Tree(uuidv4(), constants.EXTRA, null, null);
 
-    const expandedTree = new Tree(uuidv4(), constants.CONCAT, singleTree, extra);
+    const expandedTree = new Tree(uuidv4(), constants.NEW_CONCAT, singleTree, extra);
 
     return expandedTree;
   }
@@ -109,7 +109,7 @@ export default class DFA {
     const states = [];
 
     if (tree !== null) {
-      if (tree.rigth !== null) {
+      if (tree.right !== null) {
         for (let state of this.getStates(tree.right)) states.push(state);
       }
 
@@ -124,7 +124,7 @@ export default class DFA {
           tree.head !== constants.KLEEN_CLOSURE &&
           tree.head !== constants.POSITIVE_CLOSURE &&
           tree.head !== constants.ZERO_OR_ONE &&
-          tree.head !== constants.CONCAT &&
+          tree.head !== constants.NEW_CONCAT &&
           tree.head !== constants.OPEN_PARENTHESIS &&
           tree.head !== constants.CLOSING_PARENTHESIS
         ) {
@@ -150,7 +150,7 @@ export default class DFA {
       }
 
       // n = c1.c2
-      else if (n === constants.CONCAT) {
+      else if (n === constants.NEW_CONCAT) {
         // nullable(c1) && nullable(c2)
         (this.calculateNullableFunction(c1) && this.calculateNullableFunction(c2)) ? nullableResult = true : nullableResult = false;
       }
@@ -180,7 +180,7 @@ export default class DFA {
         n === constants.KLEEN_CLOSURE ||
         n === constants.POSITIVE_CLOSURE ||
         n === constants.ZERO_OR_ONE ||
-        n === constants.CONCAT ||
+        n === constants.NEW_CONCAT ||
         n === constants.OPEN_PARENTHESIS ||
         n === constants.CLOSING_PARENTHESIS
       ) {
@@ -192,7 +192,7 @@ export default class DFA {
         }
 
         // n = c1.c2
-        else if (n === constants.CONCAT) {
+        else if (n === constants.NEW_CONCAT) {
           const union = []
           // firstPos(c1)
           union.push(...this.calculateFirstPosition(c1))
@@ -230,7 +230,7 @@ export default class DFA {
         n === constants.KLEEN_CLOSURE ||
         n === constants.POSITIVE_CLOSURE ||
         n === constants.ZERO_OR_ONE ||
-        n === constants.CONCAT ||
+        n === constants.NEW_CONCAT ||
         n === constants.OPEN_PARENTHESIS ||
         n === constants.CLOSING_PARENTHESIS
       ) {
@@ -241,7 +241,7 @@ export default class DFA {
           states.push(...union);
         }
         // n = c1.c2
-        else if (n === constants.CONCAT) {
+        else if (n === constants.NEW_CONCAT) {
           const union = [];
           // lastPos(c1)
           if (this.calculateNullableFunction(c2)) {
@@ -273,7 +273,7 @@ export default class DFA {
       if (c1 !== null) this.calculateNextPosition(c1, table);
       if (c2 !== null) this.calculateNextPosition(c2, table);
 
-      if (n === constants.CONCAT) {
+      if (n === constants.NEW_CONCAT) {
         for (let lastPositionsLeftTree of this.calculateLastPosition(c1)) {
           for (let firstPosistionRightTree of this.calculateFirstPosition(c2)) {
             table[lastPositionsLeftTree.getUniqueTree()].push(firstPosistionRightTree);
@@ -310,7 +310,7 @@ export default class DFA {
         symbols !== constants.KLEEN_CLOSURE &&
         symbols !== constants.POSITIVE_CLOSURE &&
         symbols !== constants.ZERO_OR_ONE &&
-        symbols !== constants.CONCAT &&
+        symbols !== constants.NEW_CONCAT &&
         symbols !== constants.OPEN_PARENTHESIS &&
         symbols !== constants.CLOSING_PARENTHESIS && 
         symbols !== constants.EPSILON &&
@@ -370,8 +370,8 @@ export default class DFA {
         }
 
         // Calcular si me puedo mover a algún estado en el automata con los valueTrees actuales
-        // Si no hay un estado al que me pueda mover, añadir el estado al autómata
-        // a las transiciones del estado actual añadir una transición de dicho estado, al nuevo estado
+        // Si no hay un estado al que me pueda mover, añadir el nuevo estado al autómata
+        // a las transiciones del estado actual añadir una transición de dicho estado al nuevo estado
         if (this.calculateMovement(automata, valueTrees, false) && !isEmpty(valueTrees)) {
           const newState = {
             value: valueTrees,

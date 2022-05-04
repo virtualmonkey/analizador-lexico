@@ -1,0 +1,11 @@
+// ArchivoPrueba1.txt
+
+numero numero id id id numero if id numero
+
+// ArchivoPrueba2.txt
+
+identificador tabulador tabulador SI identificador identificador numero si identificador identificador numero numeroHex tabulador identificador
+
+// ArchivoPrueba3.txt
+
+cadena espacioEnBlanco numeroDecimal espacioEnBlanco numero espacioEnBlanco id espacioEnBlanco cadena

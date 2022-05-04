@@ -4,7 +4,8 @@ const CLOSING_PARENTHESIS = ")";
 const OR = "|";
 const POSITIVE_CLOSURE = "+";
 const KLEEN_CLOSURE = "*";
-const CONCAT = "&";
+const CONCAT = ".";
+const NEW_CONCAT = "&";
 const ZERO_OR_ONE = "?"
 const EPSILON = "ε";
 const LETTERS =["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","X","Y","Z"];
@@ -16,6 +17,7 @@ export const constants = {
   POSITIVE_CLOSURE,
   KLEEN_CLOSURE,
   CONCAT,
+  NEW_CONCAT,
   ZERO_OR_ONE,
   EPSILON,
   LETTERS
