@@ -1,8 +1,6 @@
 import * as fs from 'fs';
 import trim from 'lodash/trim.js'
-import reverse from 'lodash/reverse.js';
-
-import DFA from './DFA/DFA.js';
+import DFA from '../DFA/DFA.js';
 
 export function readTestFile(testFileRelativePath){
   const testFileLines = [];
@@ -18,18 +16,12 @@ export function readTestFile(testFileRelativePath){
   return testFileLines;
 }
 
-export function generateScannerOutput(fileName, specialCharacters, keywords, tokenNames, tokenValues, testFileLines){
-  const stringToEvaluate = testFileLines[0];
-  const reversedTokenValues = reverse(tokenValues);
-  const reversedTokenNames = reverse(tokenNames);
-
-  //console.log("stringToEvaluate -> ", stringToEvaluate)
-
+export function generateEvaluatorOutput(fileName, specialCharacters, keywords, tokenNames, tokenValues, testFileLines){
   const output = [];
   let stringWithIdentifiedSpecialChars = "";
 
   if (specialCharacters.length !== 0){
-    for (let character of stringToEvaluate){
+    for (let character of testFileLines[0]){
       let temp = "";
       if (specialCharacters.includes(character)){
         temp += `@${character}@`;
@@ -39,7 +31,6 @@ export function generateScannerOutput(fileName, specialCharacters, keywords, tok
       }
     }
   }
-  //console.log("stringWithIdentifiedSpecialChars BEFORE if-> ", stringWithIdentifiedSpecialChars)
 
   // If we got a kewyord that's only one value (space, tab, etc)
   if (keywords.map(keyword => keyword.keywordValue.length).includes(1)){
@@ -48,27 +39,22 @@ export function generateScannerOutput(fileName, specialCharacters, keywords, tok
     if (stringWithIdentifiedSpecialChars !== ""){
       currentStringWithIdentifiedSpecialChars = stringWithIdentifiedSpecialChars;
     } else {
-      currentStringWithIdentifiedSpecialChars = stringToEvaluate;
+      currentStringWithIdentifiedSpecialChars = testFileLines[0];
     }
     
     stringWithIdentifiedSpecialChars = "";
     for (let character of currentStringWithIdentifiedSpecialChars){
       let temp = "";
       if (keywords.map(keyword => keyword.keywordValue).includes(character)){
-        //console.log(`entré con character ->${character}<- `)
         temp += `@${character}@`;
         stringWithIdentifiedSpecialChars += temp;
       } else {
         stringWithIdentifiedSpecialChars += character
       }
     }
-
-    console.log("stringWithIdentifiedSpecialChars AFTER if-> ", stringWithIdentifiedSpecialChars);
   }
 
   let arrayWithIdentifiedSpecialChars = [];
-
-  //console.log("stringWithIdentifiedSpecialChars -> ", stringWithIdentifiedSpecialChars)
 
   let spaceNotInSpecialCharacters = false;
 
@@ -78,12 +64,10 @@ export function generateScannerOutput(fileName, specialCharacters, keywords, tok
   }
 
   if (stringWithIdentifiedSpecialChars === ""){
-    arrayWithIdentifiedSpecialChars = stringToEvaluate.split(" ")
+    arrayWithIdentifiedSpecialChars = testFileLines[0].split(" ")
   } else {
     arrayWithIdentifiedSpecialChars = stringWithIdentifiedSpecialChars.split("@");
   }
-
-  //console.log("arrayWithIdentifiedSpecialChars -> ", arrayWithIdentifiedSpecialChars)
 
   const arrayWithIdentifiedKeywords = arrayWithIdentifiedSpecialChars.map(current => {
     if (keywords.map((keyword) => {
@@ -99,15 +83,9 @@ export function generateScannerOutput(fileName, specialCharacters, keywords, tok
     }
   });
 
-  //console.log("arrayWithIdentifiedKeywords -> ", arrayWithIdentifiedKeywords)
-
   const stringWithIdentifiedKeywords = arrayWithIdentifiedKeywords.join("@");
 
-  //console.log("stringWithIdentifiedKeywords -> ", stringWithIdentifiedKeywords)
-
   const arrayToAnalize = stringWithIdentifiedKeywords.split("@").filter((possibleToken) => possibleToken !== '')
-  console.log("arrayToAnalize -> ", arrayToAnalize);
-
   for (let i = 0; i<arrayToAnalize.length; i++){
     let wasAnalized = false;
 
@@ -123,13 +101,13 @@ export function generateScannerOutput(fileName, specialCharacters, keywords, tok
     // Check for tokens
     if (wasAnalized === false){
       let indexOfSuccessToken = 0;
-      for (let token of reversedTokenValues){
+      for (let token of tokenValues){
         const dfaInstance = new DFA();
         const dfa = dfaInstance.getDirectDFA(token);
         const result = dfaInstance.validateString(arrayToAnalize[i]);
 
         if (result === true){
-          indexOfSuccessToken = reversedTokenValues.indexOf(token);
+          indexOfSuccessToken = tokenValues.indexOf(token);
           wasAnalized = true;
           break
         } else {
@@ -137,11 +115,8 @@ export function generateScannerOutput(fileName, specialCharacters, keywords, tok
         }
       }
       
-      if(wasAnalized) {
-        output.push(reversedTokenNames[indexOfSuccessToken])
-      } else {
-        if (!spaceNotInSpecialCharacters) output.push("Invalid"); 
-      }
+      if(wasAnalized) output.push(tokenNames[indexOfSuccessToken])
+      else if (!spaceNotInSpecialCharacters) output.push("Invalid");
     }
   }
 

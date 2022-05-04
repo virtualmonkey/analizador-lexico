@@ -1,7 +1,10 @@
 import last from 'lodash/last.js';
 import first from 'lodash/first.js';
 import join from 'lodash/join.js';
-import trim from 'lodash/trim.js'
+import trim from 'lodash/trim.js';
+import reverse from 'lodash/reverse.js';
+import { constants } from '../utils/constants.js';
+import { functions } from '../utils/functions.js';
 
 export function CHR(index){
   if (index === 9){
@@ -14,30 +17,29 @@ export function getAutomataString(charactersString){
   let charactersArray = charactersString.split("");
   let result = [];
 
-  if (charactersArray.includes("(")){
+  if (charactersArray.includes(constants.OPEN_PARENTHESIS)){
     let stillParsing = false;
     for (let character of charactersArray){
-      if(character === "(") stillParsing = true;
-      else if (character === ")") stillParsing = false;
+      if(character === constants.OPEN_PARENTHESIS) stillParsing = true;
+      else if (character === constants.CLOSING_PARENTHESIS) stillParsing = false;
 
       if (stillParsing === true){
-        if (character !== "(" && character !== ")") result.push(character);
+        if (character !== constants.OPEN_PARENTHESIS && character !== constants.CLOSING_PARENTHESIS) result.push(character);
       }
 
       else if (stillParsing === false){
-        if (character !== ")") result.push(character);
-        result.push("|");
+        if (character !== constants.CLOSING_PARENTHESIS) result.push(character);
+        result.push(constants.OR);
       }
     }
 
-    if(last(result) === "|") result.pop();
-
-    result.push(")");
-    result.splice(0,0,"(");
+    if(last(result) === constants.OR) result.pop();
+    result.push(constants.CLOSING_PARENTHESIS);
+    result.splice(0,0,constants.OPEN_PARENTHESIS);
   } else {
-    result = join(charactersArray, "|").split("");
-    result.push(")");
-    result.splice(0,0,"(");
+    result = join(charactersArray, constants.OR).split("");
+    result.push(constants.CLOSING_PARENTHESIS);
+    result.splice(0,0,constants.OPEN_PARENTHESIS);
   }
 
   return result.join("");
@@ -64,6 +66,44 @@ function getCharacterStatements(charactersArray){
   }
 
   return characterStatements;
+}
+
+function getCharacterStatementsWithStrings(characterStatementsArray){
+  let newCharacterStatements = [];
+  let characterStatementNames = characterStatementsArray.map(characterStatement => characterStatement.characterName);
+
+  for (let characterStatement of characterStatementsArray){
+    const arrayOfNames = [];
+    const arrayOfValues = [];
+    for (let name of characterStatementNames){
+      if (characterStatement.characterValue.match(new RegExp("\\b"+name+"\\b", 'g'))) {
+        arrayOfNames.push(name)
+        arrayOfValues.push(characterStatementsArray[characterStatementNames.indexOf(name)].characterValue)
+      }
+    }
+
+    if (arrayOfNames.length > 0 && arrayOfValues.length > 0){
+      let newCharacterValue = characterStatement.characterValue;
+      for (let characterToReplaceName of arrayOfNames){
+        newCharacterValue = newCharacterValue.replaceAll(`${characterToReplaceName}`, arrayOfValues[arrayOfNames.indexOf(characterToReplaceName)]);
+      }
+  
+      newCharacterStatements.push({
+        characterName: characterStatement.characterName,
+        characterValue: newCharacterValue
+      })
+    }
+    newCharacterStatements.push(characterStatement);
+  }
+
+  // remove duplicates
+  const finalCharacterStatements = newCharacterStatements.filter((value, index, self) =>
+    index === self.findIndex((t) => (
+      t.characterName === value.characterName
+    ))
+  );
+
+  return finalCharacterStatements;
 }
 
 function getKeywordStatements(keywordsArray){
@@ -100,36 +140,15 @@ function tokenStringToAutomataString(tokenAsString){
   const currentTokenName = trim(currentTokenTest[0]);
   let currentTokenValue = trim(currentTokenTest[1]);
 
-  // substitute " -> /+/
-  currentTokenValue = currentTokenValue.replaceAll(CHR(34), '+')
-
-  // substitute | -> / + "|"+/
-  currentTokenValue = currentTokenValue.replaceAll(CHR(124), `&+&"|"+`)
-
-  // substitute . -> /". "/
-  currentTokenValue = currentTokenValue.replaceAll(CHR(46), `".&"`)
-  
-  // substitute ( -> / + " ("+/
-  currentTokenValue = currentTokenValue.replaceAll(CHR(40), `&+&"&("+`)
-
-  // substitute ) -> / + ")"/
-  currentTokenValue = currentTokenValue.replaceAll(CHR(42), `&+&")"`)
-
-  // substitute { por / + " (("+/
-  currentTokenValue = currentTokenValue.replaceAll(CHR(123), `&+&"&(("+`)
-
-  // substitute } por / + ")*) "+/
-  currentTokenValue = currentTokenValue.replaceAll(CHR(125), `&+&")*)&"+`)
-
-  // substitute [ por / + " (("+/
-  currentTokenValue = currentTokenValue.replaceAll(CHR(91), `&+&"&(("+`)
-
-  // substitute ] por / + ")*) "+/
-  currentTokenValue = currentTokenValue.replaceAll(CHR(93), `&+&")*)&"+`);
+  const tokenWithPositiveClosures = functions.convertAddedStrings(currentTokenValue);
+  const tokenWithOrs = functions.convertOr(tokenWithPositiveClosures);
+  const tokenWithConcats = functions.convertConcat(tokenWithOrs);
+  const tokenWithParenthesis = functions.convertParenthesis(tokenWithConcats);
+  const tokenWithKleenClosure = functions.convertKleenClosure(tokenWithParenthesis);
+  currentTokenValue = tokenWithKleenClosure;
 
   const addedSubstrings = currentTokenValue.match(/(?![".&"])(?<=\+\+).*?(?=\+)/gs);
 
-  // substitute "+substring" por /+ "substring"/
   if (addedSubstrings && addedSubstrings.length > 0){
     for (let addedSubstring of addedSubstrings){
       const addedSubstringJoined = join(addedSubstring.split(""),"&");
@@ -195,7 +214,7 @@ function getTokenStatements(tokensArray){
     tokenNames.push(clutteredTokenName);
 
     // start cleaning the clutteredTokenValue
-    clutteredTokenValue = clutteredTokenValue.replaceAll(CHR(41)+CHR(42)+CHR(41), ")*)&");
+    clutteredTokenValue = functions.addConcatBetweenGroupedTerms(clutteredTokenValue);
 
     // Remove + sign from start and finish
     if (first(clutteredTokenValue) === "+") clutteredTokenValue = clutteredTokenValue.replace("+","");
@@ -219,18 +238,13 @@ function getTokenStatements(tokensArray){
     clutteredTokenValue = newTokenValueArray.join("");
 
     clutteredTokenValue = clutteredTokenValue.replaceAll(`"+/`, `"+`);
-    clutteredTokenValue = clutteredTokenValue.replaceAll(CHR(43)+CHR(43)+CHR(43), `&+`);
-    clutteredTokenValue = clutteredTokenValue.replaceAll(CHR(43)+CHR(43), `&+`);
-    clutteredTokenValue = clutteredTokenValue.replaceAll(CHR(40)+CHR(40), `&((`)
-    clutteredTokenValue = clutteredTokenValue.replaceAll(CHR(34)+CHR(40)+CHR(34), `"&("`)
-    clutteredTokenValue = clutteredTokenValue.replaceAll(CHR(38)+CHR(43), `+`)
-    clutteredTokenValue = clutteredTokenValue.replaceAll("/", `+"&"+`);
-    clutteredTokenValue = clutteredTokenValue.replaceAll(`"&"++`, ``);
-    clutteredTokenValue = clutteredTokenValue.replaceAll(`+`, ` + `);
+    const tokenValueWithoutDuplicatedOps = functions.clearDuplicatedOperators(clutteredTokenValue);
+    const tokenValueClean = functions.cleanFinalString(tokenValueWithoutDuplicatedOps);
+    const tokenValueWithoutFwdSlash = functions.handleForwardSlash(tokenValueClean);
+    clutteredTokenValue = tokenValueWithoutFwdSlash;
 
     const addedSubstrings = clutteredTokenValue.match(/(?<=').*?(?=')/gs);
 
-    // substitute ' +substring' por /+ "s&u&b&s&t&r&i&n&g"/
     if (addedSubstrings && addedSubstrings.length > 0){
       for (let addedSubstring of addedSubstrings){
         const addedSubstringJoined = join(addedSubstring.split(""),"&");
@@ -258,16 +272,15 @@ function getTokenStatements(tokensArray){
 export default function getCompilableFile(headerArray, charactersArray, keywordsArray, tokensArray){
   const outputFileLines = [];
 
-  // TODO change this imports
   outputFileLines.push(`import promptSync from "prompt-sync";`);
   outputFileLines.push("\n");
   outputFileLines.push(`import { getAutomataString } from "../LexicalAnalizer/LexicalAnalizer.js";`);
   outputFileLines.push("\n");
-  outputFileLines.push(`import { CHR } from "../LexicalAnalizer/LexicalAnalizer.js";`)
+  outputFileLines.push(`import { generateEvaluatorOutput } from "../LexicalEvaluator/LexicalEvaluator.js";`);
   outputFileLines.push("\n");
-  outputFileLines.push(`import { generateScannerOutput } from "../scanner.js";`)
+  outputFileLines.push(`import { readTestFile } from "../LexicalEvaluator/LexicalEvaluator.js";`);
   outputFileLines.push("\n");
-  outputFileLines.push(`import { readTestFile } from "../scanner.js";`);
+  outputFileLines.push(`import { CHR } from "../LexicalAnalizer/LexicalAnalizer.js";`);
   outputFileLines.push("\n");
   outputFileLines.push("\n");
   outputFileLines.push(`const prompt = promptSync();`);
@@ -286,12 +299,6 @@ export default function getCompilableFile(headerArray, charactersArray, keywords
 
   let specialCharacters = [];
 
-  outputFileLines.push(`console.log("Los characters disponibles son los siguientes: ")`);
-  outputFileLines.push("\n");
-  outputFileLines.push(`console.log("");`);
-  outputFileLines.push("\n");
-  outputFileLines.push("\n");
-
   for (let characterStatement of characterStatements){
     const { characterName, characterValue } = characterStatement;
 
@@ -307,28 +314,9 @@ export default function getCompilableFile(headerArray, charactersArray, keywords
         specialCharacters.push(trim(separatedCharacters));
       }
     }
-
-    outputFileLines.push(`let ${characterName} = ${characterValue};`);
-    outputFileLines.push("\n")
-    outputFileLines.push(`console.log("${characterName} -> ", ${characterName});`);
-    outputFileLines.push("\n")
-    outputFileLines.push("\n")
   }
 
-  outputFileLines.push(`// AUTOMATA CHARACTERS`);
-  outputFileLines.push("\n")
-  for (let characterStatement of characterStatements){
-    const { characterName, characterValue } = characterStatement;
-
-    outputFileLines.push(`${characterName} = getAutomataString(${characterValue});`);
-    outputFileLines.push("\n")
-  }
-
-  outputFileLines.push("\n")
   outputFileLines.push(`const specialCharacters = [${specialCharacters}]`);
-  outputFileLines.push("\n");
-  outputFileLines.push("\n");
-  outputFileLines.push(`console.log("");`);
   outputFileLines.push("\n");
 
   outputFileLines.push("\n");
@@ -345,18 +333,27 @@ export default function getCompilableFile(headerArray, charactersArray, keywords
   outputFileLines.push("\n");
   outputFileLines.push("// TOKENS");
   outputFileLines.push("\n");
-  outputFileLines.push(`console.log("Los tokens permitidos están representados por los siguientes autómatas: ")`);
+  outputFileLines.push(`console.log("Tokens permitidos: ")`);
   outputFileLines.push("\n");
   outputFileLines.push(`console.log("");`);
   outputFileLines.push("\n");
 
   const { tokenStatements, tokenValues, tokenNames } = getTokenStatements(tokensArray);
 
+  const newCharacterStatements = getCharacterStatementsWithStrings(characterStatements);
+
   for (let tokenStatement of tokenStatements){
     const {tokenName, tokenValue} =  tokenStatement;
 
+    let newTokenValue = tokenValue;
+    for (let characterStatement of newCharacterStatements){
+      if (newTokenValue.includes(characterStatement.characterName)){
+        newTokenValue = newTokenValue.replaceAll(new RegExp("\\b"+characterStatement.characterName+"\\b", 'g'), `getAutomataString(${characterStatement.characterValue})`)
+      }
+    }
+
     outputFileLines.push("\n");
-    outputFileLines.push(`const ${tokenName} = ${tokenValue};`);
+    outputFileLines.push(`const ${tokenName} = ${newTokenValue};`);
     outputFileLines.push("\n")
     outputFileLines.push(`console.log("${tokenName} -> ", ${tokenName});`);
     outputFileLines.push("\n")
@@ -365,9 +362,9 @@ export default function getCompilableFile(headerArray, charactersArray, keywords
   outputFileLines.push("\n")
   outputFileLines.push("// TOKENS ARRAYS")
   outputFileLines.push("\n")
-  outputFileLines.push(`const tokenValues = ${JSON.stringify(tokenValues).replaceAll(CHR(34), "")};`)
+  outputFileLines.push(`const tokenValues = ${JSON.stringify(reverse(tokenValues)).replaceAll(CHR(34), "")};`)
   outputFileLines.push("\n");
-  outputFileLines.push(`const tokenNames = ${JSON.stringify(tokenNames)};`)
+  outputFileLines.push(`const tokenNames = ${JSON.stringify(reverse(tokenNames))};`)
   outputFileLines.push("\n");
   outputFileLines.push("\n");
   outputFileLines.push(`console.log("");`);
@@ -379,10 +376,10 @@ export default function getCompilableFile(headerArray, charactersArray, keywords
   outputFileLines.push("\const testFileLines = readTestFile(testFileRelativePath)");
   outputFileLines.push("\n");
   outputFileLines.push("\n");
-  outputFileLines.push("const scannerOutput = generateScannerOutput(fileName, specialCharacters, keywords, tokenNames, tokenValues, testFileLines);")
+  outputFileLines.push("const evaluatorOutput = generateEvaluatorOutput(fileName, specialCharacters, keywords, tokenNames, tokenValues, testFileLines);")
   outputFileLines.push("\n");
   outputFileLines.push("\n");
-  outputFileLines.push(`console.log("El output es -> ", scannerOutput);`)
+  outputFileLines.push(`console.log("El output es -> ", evaluatorOutput);`)
 
   return outputFileLines;
 }
